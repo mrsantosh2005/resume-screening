@@ -23,7 +23,7 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['hr', 'candidate'], // ← Make sure this is correct
+    enum: ['hr', 'candidate'],
     default: 'candidate',
   },
   createdAt: {
@@ -32,7 +32,6 @@ const userSchema = new mongoose.Schema({
   },
 });
 
-// Encrypt password using bcrypt
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) {
     next();
@@ -41,7 +40,6 @@ userSchema.pre('save', async function (next) {
   this.password = await bcrypt.hash(this.password, salt);
 });
 
-// Match user entered password to hashed password in database
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };

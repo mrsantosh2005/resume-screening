@@ -1,155 +1,149 @@
-const OpenAI = require('openai');
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 class AIService {
-  // Extract skills from resume text using OpenAI
-  static async extractSkills(resumeText) {
-    try {
-      const prompt = `
-        Extract technical and professional skills from the following resume text.
-        Return only a JSON array of skills, nothing else.
-        
-        Resume Text: ${resumeText.substring(0, 3000)}
-        
-        Skills:
-      `;
-
-      const response = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.3,
-      });
-
-      const skills = JSON.parse(response.choices[0].message.content);
-      return Array.isArray(skills) ? skills : [];
-    } catch (error) {
-      console.error('Error extracting skills with AI:', error);
-      return [];
-    }
+  static extractSkills(text) {
+    const skillsDatabase = [
+      'JavaScript', 'Python', 'React', 'Node.js', 'Java', 'C++', 'HTML', 'CSS',
+      'MongoDB', 'SQL', 'AWS', 'Docker', 'Git', 'TypeScript', 'Angular', 'Vue.js',
+      'PHP', 'Ruby', 'Swift', 'Kotlin', 'Machine Learning', 'AI', 'Data Science'
+    ];
+    
+    const foundSkills = [];
+    const lowerText = text.toLowerCase();
+    
+    skillsDatabase.forEach(skill => {
+      if (lowerText.includes(skill.toLowerCase())) {
+        foundSkills.push(skill);
+      }
+    });
+    
+    return foundSkills;
   }
 
-  // Calculate match score between resume and job
+  static extractName(text) {
+    const patterns = [
+      /Name\s*:?\s*([^\n]+)/i,
+      /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/m,
+      /Resume\s+of\s+([^\n]+)/i
+    ];
+    
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        return match[1].trim();
+      }
+    }
+    return 'Candidate';
+  }
+
+  static extractEmail(text) {
+    const match = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+    return match ? match[0] : '';
+  }
+
+  static extractExperience(text) {
+    const patterns = [
+      /(\d+)\+?\s*(?:years?|yrs?)/i,
+      /experience\s*:?\s*(\d+)/i
+    ];
+    
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match) {
+        return parseInt(match[1]);
+      }
+    }
+    return 0;
+  }
+
   static calculateMatchScore(resumeData, jobData) {
-    let score = 0;
+    const resumeSkills = (resumeData?.skills || []).map(s => String(s).toLowerCase());
+    const jobSkills = (jobData?.skills || []).map(s => String(s).toLowerCase());
+    
     const matchedSkills = [];
     const missingSkills = [];
-
-    // Skills match (60% weight)
-    if (resumeData.skills && jobData.skills) {
-      const resumeSkills = resumeData.skills.map(s => s.toLowerCase());
-      const jobSkills = jobData.skills.map(s => s.toLowerCase());
-
-      jobSkills.forEach(skill => {
-        if (resumeSkills.includes(skill)) {
-          matchedSkills.push(skill);
-        } else {
-          missingSkills.push(skill);
-        }
-      });
-
+    
+    jobSkills.forEach(skill => {
+      if (resumeSkills.includes(skill.toLowerCase())) {
+        matchedSkills.push(skill);
+      } else {
+        missingSkills.push(skill);
+      }
+    });
+    
+    let score = 0;
+    
+    if (jobSkills.length > 0) {
       const skillMatchPercentage = (matchedSkills.length / jobSkills.length) * 60;
       score += skillMatchPercentage;
     }
-
-    // Experience match (30% weight)
-    if (resumeData.experience && resumeData.experience.years >= jobData.experience) {
+    
+    const resumeExp = resumeData?.experience?.years || 0;
+    const jobExp = jobData?.experience || 0;
+    
+    if (resumeExp >= jobExp) {
       score += 30;
-    } else if (resumeData.experience) {
-      const expRatio = resumeData.experience.years / jobData.experience;
+    } else if (resumeExp > 0) {
+      const expRatio = resumeExp / jobExp;
       score += Math.min(expRatio * 30, 30);
     }
-
-    // Additional factors (10% weight)
-    if (resumeData.education && jobData.education) {
-      // Add education matching logic here
-      score += 10;
-    }
-
+    
     return {
       totalScore: Math.min(Math.round(score), 100),
       matchedSkills,
       missingSkills,
-      experienceMatch: resumeData.experience?.years >= jobData.experience,
+      experienceMatch: resumeExp >= jobExp,
     };
   }
 
-  // Generate detailed analysis using OpenAI
-  static async generateAnalysis(resumeData, jobData, matchData) {
-    try {
-      const prompt = `
-        Analyze this candidate for the job position.
-        
-        Job Title: ${jobData.title}
-        Required Skills: ${jobData.skills.join(', ')}
-        Required Experience: ${jobData.experience} years
-        
-        Candidate Skills: ${resumeData.skills?.join(', ') || 'Not specified'}
-        Candidate Experience: ${resumeData.experience?.years || 0} years
-        Match Score: ${matchData.totalScore}%
-        
-        Provide a brief analysis including:
-        1. Strengths (2-3 points)
-        2. Areas for improvement (2-3 points)
-        3. Overall recommendation
-        
-        Keep it concise and professional.
-      `;
-
-      const response = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
-        max_tokens: 500,
-      });
-
-      return response.choices[0].message.content;
-    } catch (error) {
-      console.error('Error generating analysis with AI:', error);
-      return 'Analysis generation failed. Please review the candidate manually.';
+  static generateAnalysis(resumeData, jobData, matchData) {
+    const strengths = [];
+    const improvements = [];
+    
+    if (matchData.matchedSkills.length > 0) {
+      strengths.push(`Has ${matchData.matchedSkills.length} out of ${jobData.skills.length} required skills`);
     }
+    
+    const resumeExp = resumeData?.experience?.years || 0;
+    const jobExp = jobData?.experience || 0;
+    
+    if (resumeExp >= jobExp) {
+      strengths.push(`Meets experience requirement (${resumeExp}+ years)`);
+    } else if (resumeExp > 0) {
+      improvements.push(`Needs ${jobExp - resumeExp} more years of experience`);
+    }
+    
+    if (matchData.missingSkills.length > 0) {
+      improvements.push(`Missing: ${matchData.missingSkills.slice(0, 3).join(', ')}`);
+    }
+    
+    let recommendation = '';
+    if (matchData.totalScore >= 80) {
+      recommendation = 'Excellent match! Strongly recommend for interview.';
+    } else if (matchData.totalScore >= 60) {
+      recommendation = 'Good candidate. Consider for interview.';
+    } else if (matchData.totalScore >= 40) {
+      recommendation = 'Average match. Review manually.';
+    } else {
+      recommendation = 'Low match score. May not meet key requirements.';
+    }
+    
+    return {
+      strengths,
+      weaknesses: improvements,
+      recommendation,
+    };
   }
 
-  // Parse resume text to extract structured information
   static async parseResumeText(text) {
-    try {
-      const prompt = `
-        Parse the following resume text and extract information in JSON format:
-        {
-          "name": "full name",
-          "email": "email address",
-          "phone": "phone number",
-          "skills": ["skill1", "skill2"],
-          "experience": {
-            "years": number,
-            "description": "brief summary"
-          },
-          "education": {
-            "degree": "degree name",
-            "institution": "institution name",
-            "year": year
-          }
-        }
-        
-        Resume Text: ${text.substring(0, 3000)}
-        
-        JSON:
-      `;
-
-      const response = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.3,
-      });
-
-      const parsed = JSON.parse(response.choices[0].message.content);
-      return parsed;
-    } catch (error) {
-      console.error('Error parsing resume with AI:', error);
-      return null;
-    }
+    return {
+      name: this.extractName(text),
+      email: this.extractEmail(text),
+      skills: this.extractSkills(text),
+      experience: {
+        years: this.extractExperience(text),
+        description: 'Extracted from resume'
+      },
+      education: {}
+    };
   }
 }
 

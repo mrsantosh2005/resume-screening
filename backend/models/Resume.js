@@ -4,41 +4,23 @@ const resumeSchema = new mongoose.Schema({
   candidateId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: [true, 'Candidate ID is required'],
+    required: true,
   },
   jobId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Job',
-    required: [true, 'Job ID is required'],
+    required: true,
   },
   name: {
     type: String,
-    required: [true, 'Candidate name is required'],
-    trim: true,
+    required: true,
   },
-  email: {
-    type: String,
-    lowercase: true,
-    trim: true,
-  },
-  phone: {
-    type: String,
-    trim: true,
-  },
-  skills: [{
-    type: String,
-    trim: true,
-  }],
+  email: String,
+  phone: String,
+  skills: [String],
   experience: {
-    years: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    description: {
-      type: String,
-      trim: true,
-    },
+    years: Number,
+    description: String,
   },
   education: {
     degree: String,
@@ -54,22 +36,13 @@ const resumeSchema = new mongoose.Schema({
   analysis: {
     matchedSkills: [String],
     missingSkills: [String],
-    experienceMatch: {
-      type: Boolean,
-      default: false,
-    },
+    experienceMatch: Boolean,
     strengths: [String],
     weaknesses: [String],
     recommendation: String,
   },
-  fileUrl: {
-    type: String,
-    required: true,
-  },
-  fileName: {
-    type: String,
-    required: true,
-  },
+  fileUrl: String,
+  fileName: String,
   status: {
     type: String,
     enum: ['pending', 'reviewed', 'shortlisted', 'rejected'],
@@ -80,9 +53,5 @@ const resumeSchema = new mongoose.Schema({
     default: Date.now,
   },
 });
-
-// Add index for better query performance
-resumeSchema.index({ candidateId: 1, jobId: 1 }, { unique: true });
-resumeSchema.index({ jobId: 1, score: -1 });
 
 module.exports = mongoose.model('Resume', resumeSchema);
