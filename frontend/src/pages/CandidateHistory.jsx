@@ -5,20 +5,23 @@ import { Briefcase, CheckCircle, Clock, XCircle, Eye, Calendar, FileText } from 
 import toast from 'react-hot-toast';
 
 const CandidateHistory = () => {
+  const { user } = useAuth();
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedApp, setSelectedApp] = useState(null);
 
   useEffect(() => {
-    fetchApplications();
+    fetchApplications();  // ← Only this, NOT searchCandidates
   }, []);
 
   const fetchApplications = async () => {
     try {
       const res = await api.get('/api/resumes/my-resumes');
-      setApplications(res.data.data);
+      console.log('Applications:', res.data);
+      setApplications(res.data.data || []);
     } catch (error) {
-      toast.error('Failed to load applications');
+      console.error('Error fetching applications:', error);
+      toast.error(error.response?.data?.error || 'Failed to load applications');
     } finally {
       setLoading(false);
     }
@@ -67,15 +70,51 @@ const CandidateHistory = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl shadow p-4"><div className="flex items-center justify-between"><div><p className="text-gray-500 text-sm">Total</p><p className="text-2xl font-bold">{applications.length}</p></div><Briefcase className="h-8 w-8 text-indigo-600" /></div></div>
-        <div className="bg-white rounded-xl shadow p-4"><div className="flex items-center justify-between"><div><p className="text-gray-500 text-sm">Shortlisted</p><p className="text-2xl font-bold text-green-600">{applications.filter(a => a.status === 'shortlisted').length}</p></div><CheckCircle className="h-8 w-8 text-green-600" /></div></div>
-        <div className="bg-white rounded-xl shadow p-4"><div className="flex items-center justify-between"><div><p className="text-gray-500 text-sm">Avg Score</p><p className="text-2xl font-bold text-purple-600">{applications.length > 0 ? Math.round(applications.reduce((sum, a) => sum + a.score, 0) / applications.length) : 0}%</p></div><FileText className="h-8 w-8 text-purple-600" /></div></div>
+        <div className="bg-white rounded-xl shadow p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-sm">Total</p>
+              <p className="text-2xl font-bold">{applications.length}</p>
+            </div>
+            <Briefcase className="h-8 w-8 text-indigo-600" />
+          </div>
+        </div>
+        <div className="bg-white rounded-xl shadow p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-sm">Shortlisted</p>
+              <p className="text-2xl font-bold text-green-600">
+                {applications.filter(a => a.status === 'shortlisted').length}
+              </p>
+            </div>
+            <CheckCircle className="h-8 w-8 text-green-600" />
+          </div>
+        </div>
+        <div className="bg-white rounded-xl shadow p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-sm">Avg Score</p>
+              <p className="text-2xl font-bold text-purple-600">
+                {applications.length > 0 
+                  ? Math.round(applications.reduce((sum, a) => sum + a.score, 0) / applications.length)
+                  : 0}%
+              </p>
+            </div>
+            <FileText className="h-8 w-8 text-purple-600" />
+          </div>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow overflow-hidden">
-        <div className="px-6 py-4 border-b bg-gray-50"><h2 className="text-lg font-semibold">Application History</h2></div>
+        <div className="px-6 py-4 border-b bg-gray-50">
+          <h2 className="text-lg font-semibold">Application History</h2>
+        </div>
+        
         {applications.length === 0 ? (
-          <div className="p-12 text-center"><FileText className="h-16 w-16 mx-auto mb-4 text-gray-400" /><p>No applications yet</p></div>
+          <div className="p-12 text-center">
+            <FileText className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+            <p>No applications yet</p>
+          </div>
         ) : (
           <div className="divide-y">
             {applications.map((app) => (
@@ -84,12 +123,30 @@ const CandidateHistory = () => {
                   <div>
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="text-lg font-semibold">{app.jobId?.title}</h3>
-                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(app.status)}`}>{getStatusIcon(app.status)}{getStatusText(app.status)}</span>
+                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(app.status)}`}>
+                        {getStatusIcon(app.status)}{getStatusText(app.status)}
+                      </span>
                     </div>
                     <p className="text-gray-600 mb-2">{app.jobId?.company}</p>
-                    <div className="flex gap-4 text-sm text-gray-500 mb-3"><div className="flex items-center gap-1"><Calendar className="h-4 w-4" />Applied: {new Date(app.uploadedAt).toLocaleDateString()}</div><div>Score: <span className="font-bold text-indigo-600">{app.score}%</span></div></div>
-                    <button onClick={() => setSelectedApp(selectedApp === app._id ? null : app._id)} className="text-indigo-600 text-sm flex items-center gap-1"><Eye className="h-4 w-4" />{selectedApp === app._id ? 'Hide Details' : 'View Details'}</button>
-                    {selectedApp === app._id && app.analysis?.recommendation && <div className="mt-3 p-3 bg-gray-50 rounded"><p className="text-sm">{app.analysis.recommendation}</p></div>}
+                    <div className="flex gap-4 text-sm text-gray-500 mb-3">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-4 w-4" />
+                        Applied: {new Date(app.uploadedAt).toLocaleDateString()}
+                      </div>
+                      <div>Score: <span className="font-bold text-indigo-600">{app.score}%</span></div>
+                    </div>
+                    <button 
+                      onClick={() => setSelectedApp(selectedApp === app._id ? null : app._id)} 
+                      className="text-indigo-600 text-sm flex items-center gap-1"
+                    >
+                      <Eye className="h-4 w-4" />
+                      {selectedApp === app._id ? 'Hide Details' : 'View Details'}
+                    </button>
+                    {selectedApp === app._id && app.analysis?.recommendation && (
+                      <div className="mt-3 p-3 bg-gray-50 rounded">
+                        <p className="text-sm">{app.analysis.recommendation}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

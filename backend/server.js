@@ -18,6 +18,7 @@ app.get('/api/test', (req, res) => {
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/jobs', require('./routes/jobs'));
 app.use('/api/resumes', require('./routes/resumes'));
+app.use('/api/search', require('./routes/search'));
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
