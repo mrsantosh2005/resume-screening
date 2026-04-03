@@ -10,13 +10,19 @@ const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    const success = await login(email, password);
-    setLoading(false);
-    if (success) navigate('/');
-  };
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+  console.log('Attempting login with:', { email, password });
+  
+  const success = await login(email, password);
+  console.log('Login success:', success);
+  
+  setLoading(false);
+  if (success) {
+    navigate('/');
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-600 to-purple-600">
