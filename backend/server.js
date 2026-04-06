@@ -9,10 +9,7 @@ connectDB();
 const app = express();
 
 // Middleware
-app.use(cors({
-  origin: ['https://resume-screening-frontend.onrender.com', 'http://localhost:3000'],
-  credentials: true,
-}));
+app.use(cors());
 app.use(express.json());
 
 // ✅ TEST ROUTE
@@ -21,7 +18,9 @@ app.get('/api/test', (req, res) => {
 });
 
 // ✅ AUTH ROUTES - YE SABSE IMPORTANT HAI
-app.use('/api/auth', require('./routes/auth'));
+const authRoutes = require('./routes/auth');
+console.log('Auth routes loaded:', authRoutes); // Debug log
+app.use('/api/auth', authRoutes);
 
 // ✅ OTHER ROUTES
 app.use('/api/jobs', require('./routes/jobs'));
@@ -29,6 +28,7 @@ app.use('/api/resumes', require('./routes/resumes'));
 
 // 404 handler
 app.use('*', (req, res) => {
+  console.log('Route not found:', req.originalUrl);
   res.status(404).json({ 
     success: false, 
     error: `Route ${req.originalUrl} not found` 
