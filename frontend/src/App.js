@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import PrivateRoute from './components/Layout/PrivateRoute';
+import FloatingLines from './components/Background/FloatingLines.jsx';
 
 // Pages
 import Login from './pages/Login';
@@ -19,7 +20,18 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="min-h-screen bg-gray-50">
+        {/* Floating Lines Background */}
+        <FloatingLines 
+          enabledWaves={["top", "middle", "bottom"]}
+          lineCount={10}
+          lineDistance={5}
+          bendRadius={6}
+          bendStrength={-0.4}
+          interactive={true}
+          parallax={true}
+        />
+        
+        <div className="min-h-screen bg-transparent relative z-10">
           <Toaster 
             position="top-right"
             toastOptions={{
