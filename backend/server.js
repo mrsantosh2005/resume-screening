@@ -4,45 +4,35 @@ const cors = require('cors');
 const connectDB = require('./config/db');
 
 dotenv.config();
-
-// Database connection with error handling
-connectDB().catch(err => {
-  console.error('Database connection failed:', err);
-  process.exit(1);
-});
+connectDB();
 
 const app = express();
 
-// CORS - Allow all origins for Render
+// Middleware
 app.use(cors({
-  origin: ['https://resume-screening-e3cz.onrender.com', 'http://localhost:3000'],
+  origin: ['https://resume-screening-frontend.onrender.com', 'http://localhost:3000'],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
 }));
-
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// Health check endpoint
+// ✅ TEST ROUTE
 app.get('/api/test', (req, res) => {
-  res.json({ success: true, message: 'Server is running!', timestamp: new Date().toISOString() });
+  res.json({ success: true, message: 'Server is running!' });
 });
 
-// Routes
+// ✅ AUTH ROUTES - YE SABSE IMPORTANT HAI
 app.use('/api/auth', require('./routes/auth'));
+
+// ✅ OTHER ROUTES
 app.use('/api/jobs', require('./routes/jobs'));
 app.use('/api/resumes', require('./routes/resumes'));
 
-// 404 handler for undefined routes
+// 404 handler
 app.use('*', (req, res) => {
-  res.status(404).json({ success: false, error: `Route ${req.originalUrl} not found` });
-});
-
-// Global error handler
-app.use((err, req, res, next) => {
-  console.error('Server error:', err);
-  res.status(500).json({ success: false, error: 'Internal server error' });
+  res.status(404).json({ 
+    success: false, 
+    error: `Route ${req.originalUrl} not found` 
+  });
 });
 
 const PORT = process.env.PORT || 5000;

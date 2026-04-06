@@ -7,13 +7,13 @@ const generateToken = (id) => {
   });
 };
 
+// @desc    Register user
 exports.register = async (req, res) => {
   try {
-    console.log('Register request:', req.body);
+    console.log('Register request body:', req.body);
     
     const { name, email, password, role } = req.body;
     
-    // Validation
     if (!name || !email || !password) {
       return res.status(400).json({
         success: false,
@@ -21,7 +21,6 @@ exports.register = async (req, res) => {
       });
     }
     
-    // Check if user exists
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({
@@ -30,7 +29,6 @@ exports.register = async (req, res) => {
       });
     }
     
-    // Create user
     const user = await User.create({
       name,
       email,
@@ -59,8 +57,11 @@ exports.register = async (req, res) => {
   }
 };
 
+// @desc    Login user
 exports.login = async (req, res) => {
   try {
+    console.log('Login request body:', req.body);
+    
     const { email, password } = req.body;
     
     const user = await User.findOne({ email }).select('+password');
@@ -100,6 +101,7 @@ exports.login = async (req, res) => {
   }
 };
 
+// @desc    Get current user
 exports.getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
